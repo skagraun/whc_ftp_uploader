@@ -13,6 +13,7 @@ import fs from "fs/promises";
 import { open as fsOpen } from "fs/promises";
 import path from "path";
 import { Client } from "basic-ftp";
+import nodemailer from "nodemailer";
 
 // segéd: kötelező env - ha hiányzik, azonnal hibát dobunk (fail-fast),
 // nehogy pl. üres FTP_HOST-tal próbáljunk csatlakozni.
@@ -118,6 +119,49 @@ async function writeLog(baseDir, message) {
   }
 }
 
+// E-mail értesítés sikertelen feltöltésről (SMTP_HOST + ALERT_EMAIL_TO
+// env változókkal állítható). Ha ezek nincsenek beállítva, nincs
+// e-mail küldés, csak egy figyelmeztetés a konzolon - a feltöltési
+// logika ettől függetlenül lefut, egy elakadt e-mail küldés sosem
+// akaszthatja meg a feltöltést.
+async function notifyFailure(watchDir, errorLines) {
+  const SMTP_HOST = process.env.SMTP_HOST;
+  const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO;
+
+  if (!SMTP_HOST || !ALERT_EMAIL_TO) {
+    console.warn(
+      "[uploader] SMTP_HOST vagy ALERT_EMAIL_TO nincs beállítva - nem küldök e-mail értesítést a sikertelen feltöltésről."
+    );
+    return;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 25),
+      secure: false,
+    });
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || "whc-ftp-uploader@opmobility.com",
+      to: ALERT_EMAIL_TO,
+      subject: `[WHC FTP Uploader] Sikertelen feltöltés - ${watchDir}`,
+      text: [
+        `A feltöltés nem sikerült (${new Date().toISOString()}).`,
+        `Figyelt mappa: ${watchDir}`,
+        "",
+        "Hibák:",
+        ...errorLines.map((line) => `- ${line}`),
+      ].join("\n"),
+    });
+    console.log(`[uploader] Failure notification sent to ${ALERT_EMAIL_TO}`);
+  } catch (err) {
+    // Az e-mail küldés hibája sosem dobjon tovább - a feltöltés
+    // eredménye a log fájlban és a konzolon amúgy is megvan.
+    console.error("[uploader] Failed to send failure notification:", err.message || err);
+  }
+}
+
 // Védelem az egyidejű futás ellen: ha a Task Scheduler órás triggere
 // épp fut, és eközben valaki megnyomja a "Futtatás most" gombot (vagy
 // egy lassú FTP miatt két hívás lógna egymásba), a második hívás
@@ -174,6 +218,10 @@ async function runUploadJob() {
     return;
   }
 
+  // Ide gyűjtjük a futás közben történt hibákat, hogy a végén EGY
+  // összefoglaló e-mailt küldjünk (ne fájlonként/hibánként külön-külön).
+  const errors = [];
+
   const client = new Client(30_000);
   client.ftp.verbose = false;
 
@@ -216,6 +264,7 @@ async function runUploadJob() {
         const msg = `ERROR: ${name} failed: ${fileErr.message || fileErr}`;
         console.error(`[uploader] ${msg}`);
         await writeLog(WATCH_DIR, msg);
+        errors.push(msg);
       }
     }
   } catch (err) {
@@ -225,7 +274,15 @@ async function runUploadJob() {
     const msg = `FTP connection error: ${err.message || err}`;
     console.error(`[uploader] ${msg}`);
     await writeLog(WATCH_DIR, msg);
+    errors.push(msg);
   } finally {
     client.close();
+  }
+
+  // Ha bármi hiba történt (kapcsolódási hiba vagy egyes fájlok
+  // sikertelen feltöltése), e-mail értesítés megy ki - fontos, hogy
+  // időben kiderüljön, ha a fájlok nem jutottak fel az FTP szerverre.
+  if (errors.length > 0) {
+    await notifyFailure(WATCH_DIR, errors);
   }
 }

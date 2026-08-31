@@ -12,6 +12,7 @@
     "basic-ftp": "^5.0.5",
     "dotenv": "^17.2.3",
     "next": "15.5.2",
+    "nodemailer": "^9.0.6",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },

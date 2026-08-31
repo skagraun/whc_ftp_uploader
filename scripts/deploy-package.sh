@@ -21,7 +21,7 @@ OUTPUT_DIR="$PROJECT_DIR/deploy-package"
 # emiatt itt kézzel másoljuk be őket. Ha a package.json dependencies
 # listája bővül (next/react/react-dom-on kívül bármi mással), ezt a
 # listát is bővíteni kell!
-EXTRA_DEPS=(basic-ftp dotenv)
+EXTRA_DEPS=(basic-ftp dotenv nodemailer)
 
 echo "=== WHC FTP Uploader - Deploy Packager ==="
 echo ""
