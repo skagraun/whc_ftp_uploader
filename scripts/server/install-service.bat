@@ -60,6 +60,12 @@ if not exist "%APP_DIR%_trigger-upload.bat" (
     exit /b 1
 )
 
+if not exist "%APP_DIR%register-server-task.ps1" (
+    echo HIBA: register-server-task.ps1 nem talalhato itt: %APP_DIR%
+    pause
+    exit /b 1
+)
+
 if not exist "%APP_DIR%.env" (
     echo FIGYELEM: nincs .env fajl itt: %APP_DIR%
     echo Masold at a .env.example -t .env nevre es toltsd ki, mielott elinditod a szolgaltatast.
@@ -80,12 +86,18 @@ echo A Task Scheduler ezzel a felhasznaloi fiokkal fogja futtatni a folyamatokat
 echo Ird be a felhasznalonevet (pl. AD\szolgaltatas.user):
 set /p RUN_USER="> "
 echo.
+echo (A jelszot ket kulon lepesben fogja kerni: egyszer a PowerShell
+echo  a webszerver taskhoz, egyszer az schtasks a trigger taskhoz.)
+echo.
 
-schtasks /delete /tn "%TASK_NAME%" /f >nul 2>&1
 schtasks /delete /tn "%TASK_NAME%-Trigger" /f >nul 2>&1
 
-echo [1/2] "%TASK_NAME%" (webszerver, rendszerinditaskor) letrehozasa...
-schtasks /create /tn "%TASK_NAME%" /tr "cmd /c \"%APP_DIR%_run.bat\"" /sc onstart /ru %RUN_USER% /rp * /rl HIGHEST /f
+echo [1/2] "%TASK_NAME%" (webszerver, rendszerinditaskor, korlatlan futasi idovel) letrehozasa...
+:: Sima "schtasks /create"-tel a task alapertelmezetten 3 nap utan
+:: magatol leallna ("Stop the task if it runs longer than: 3 days") -
+:: ezt a webszerver task eseteben ki KELL kapcsolni, ezert ezt a taskot
+:: PowerShell-lel regisztraljuk (lasd register-server-task.ps1).
+powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%register-server-task.ps1" -TaskName "%TASK_NAME%" -AppDir "%APP_DIR%" -RunUser "%RUN_USER%"
 if %errorlevel% neq 0 (
     echo HIBA: Nem sikerult letrehozni a webszerver taskot!
     pause

@@ -73,6 +73,7 @@ for %%P in (basic-ftp dotenv nodemailer) do (
 echo [5/5] .env sablon es szerver-kezelo scriptek masolasa...
 copy /y "%PROJECT_DIR%\.env.example" "%OUTPUT_DIR%\.env.example" >nul
 copy /y "%SCRIPT_DIR%server\*.bat" "%OUTPUT_DIR%\" >nul 2>nul
+copy /y "%SCRIPT_DIR%server\*.ps1" "%OUTPUT_DIR%\" >nul 2>nul
 
 echo.
 echo ===========================================

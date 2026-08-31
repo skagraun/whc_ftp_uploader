@@ -66,6 +66,7 @@ done
 echo "[5/5] .env sablon és szerver-kezelő scriptek másolása..."
 cp .env.example "$OUTPUT_DIR/.env.example"
 cp scripts/server/*.bat "$OUTPUT_DIR/" 2>/dev/null || true
+cp scripts/server/*.ps1 "$OUTPUT_DIR/" 2>/dev/null || true
 
 echo ""
 echo "Kész! A csomag itt található: $OUTPUT_DIR"
