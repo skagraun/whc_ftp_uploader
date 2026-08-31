@@ -179,6 +179,15 @@ export async function processAndUploadAll() {
   isRunning = true;
   try {
     await runUploadJob();
+  } catch (err) {
+    // Ide akkor futunk, ha MÉG A KONFIGURÁCIÓ/ELŐKÉSZÍTÉS is elhasalt
+    // (pl. hiányzó/törölt .env, rossz WATCH_DIR útvonal, nem elérhető
+    // mappa) - tehát azelőtt, hogy bármi a WATCH_DIR-be tudna írni
+    // log fájlt. E nélkül az ilyen hiba szó szerint észrevétlen
+    // maradna: se log, se e-mail nem menne ki róla.
+    const msg = `Uploader job crashed before completing: ${err.message || err}`;
+    console.error(`[uploader] ${msg}`);
+    await notifyFailure(process.env.WATCH_DIR || "(ismeretlen WATCH_DIR)", [msg]);
   } finally {
     isRunning = false;
   }
