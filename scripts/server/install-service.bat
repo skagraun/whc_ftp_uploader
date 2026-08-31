@@ -60,8 +60,8 @@ if not exist "%APP_DIR%_trigger-upload.bat" (
     exit /b 1
 )
 
-if not exist "%APP_DIR%register-server-task.ps1" (
-    echo HIBA: register-server-task.ps1 nem talalhato itt: %APP_DIR%
+if not exist "%APP_DIR%fix-server-task-settings.ps1" (
+    echo HIBA: fix-server-task-settings.ps1 nem talalhato itt: %APP_DIR%
     pause
     exit /b 1
 )
@@ -86,25 +86,32 @@ echo A Task Scheduler ezzel a felhasznaloi fiokkal fogja futtatni a folyamatokat
 echo Ird be a felhasznalonevet (pl. AD\szolgaltatas.user):
 set /p RUN_USER="> "
 echo.
-echo (A jelszot ket kulon lepesben fogja kerni: egyszer a PowerShell
-echo  a webszerver taskhoz, egyszer az schtasks a trigger taskhoz.)
-echo.
 
+schtasks /delete /tn "%TASK_NAME%" /f >nul 2>&1
 schtasks /delete /tn "%TASK_NAME%-Trigger" /f >nul 2>&1
 
-echo [1/2] "%TASK_NAME%" (webszerver, rendszerinditaskor, korlatlan futasi idovel) letrehozasa...
-:: Sima "schtasks /create"-tel a task alapertelmezetten 3 nap utan
-:: magatol leallna ("Stop the task if it runs longer than: 3 days") -
-:: ezt a webszerver task eseteben ki KELL kapcsolni, ezert ezt a taskot
-:: PowerShell-lel regisztraljuk (lasd register-server-task.ps1).
-powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%register-server-task.ps1" -TaskName "%TASK_NAME%" -AppDir "%APP_DIR%" -RunUser "%RUN_USER%"
+echo [1/3] "%TASK_NAME%" (webszerver, rendszerinditaskor) letrehozasa...
+schtasks /create /tn "%TASK_NAME%" /tr "cmd /c \"%APP_DIR%_run.bat\"" /sc onstart /ru %RUN_USER% /rp * /rl HIGHEST /f
 if %errorlevel% neq 0 (
     echo HIBA: Nem sikerult letrehozni a webszerver taskot!
     pause
     exit /b 1
 )
 
-echo [2/2] "%TASK_NAME%-Trigger" (feltoltes inditasa %INTERVAL_MIN% percenkent) letrehozasa...
+echo [2/3] "%TASK_NAME%" korlatlan futasi idore allitasa...
+:: Sima "schtasks /create"-tel a task alapertelmezetten 3 nap utan
+:: magatol leallna ("Stop the task if it runs longer than: 3 days") -
+:: ez a folyamatosan futo webszervernek NEM jo. Ezt itt, UTOLAG
+:: javitjuk (a mar letrehozott taskon csak a Settings-et modositjuk -
+:: ehhez nem kell ujra jelszo, mert a felhasznalot/jelszot nem erintjuk).
+powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%fix-server-task-settings.ps1" -TaskName "%TASK_NAME%"
+if %errorlevel% neq 0 (
+    echo FIGYELEM: a webszerver task letrejott, de a korlatlan futasi ido
+    echo beallitasa nem sikerult - a Task Scheduler-ben kezzel is
+    echo kikapcsolhatod: Settings ful / "Stop the task if it runs longer than".
+)
+
+echo [3/3] "%TASK_NAME%-Trigger" (feltoltes inditasa %INTERVAL_MIN% percenkent) letrehozasa...
 schtasks /create /tn "%TASK_NAME%-Trigger" /tr "cmd /c \"%APP_DIR%_trigger-upload.bat\"" /sc minute /mo %INTERVAL_MIN% /ru %RUN_USER% /rp * /rl HIGHEST /f
 if %errorlevel% neq 0 (
     echo HIBA: Nem sikerult letrehozni a trigger taskot!
