@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import localFont from "next/font/local";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// 💡 Fontok helyben, offline buildhez – relatív útvonal a src/app -> public/fonts mappához
+// (nem a next/font/google-t használjuk, mert a szerveren nincs
+// internet-elérés a build/futás közben, a Google-ös betűtípus
+// letöltése emiatt elhasalna).
+export const geist = localFont({
+  src: "../../public/fonts/Geist-Regular.woff2",
+  variable: "--font-geist",
+  weight: "400",
+  style: "normal",
 });
 
-const geistMono = Geist_Mono({
+export const geistMono = localFont({
+  src: "../../public/fonts/GeistMono-Regular.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "400",
+  style: "normal",
 });
 
 export const metadata: Metadata = {
@@ -24,9 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
