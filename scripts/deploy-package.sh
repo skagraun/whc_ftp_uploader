@@ -14,14 +14,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$PROJECT_DIR/deploy-package"
 
-# Ezeket a csomagokat csak a mi saját server.js / cron.js /
+# Ezeket a csomagokat csak a mi saját server.js / env.js /
 # uploader.js kódunk használja. A Next.js "standalone" tracing csak
 # a pages/API route-okból ténylegesen elért importokat követi, ezért
 # ezek automatikusan NEM kerülnek be a standalone node_modules-ba -
 # emiatt itt kézzel másoljuk be őket. Ha a package.json dependencies
 # listája bővül (next/react/react-dom-on kívül bármi mással), ezt a
 # listát is bővíteni kell!
-EXTRA_DEPS=(basic-ftp dotenv node-cron uuid)
+EXTRA_DEPS=(basic-ftp dotenv)
 
 echo "=== WHC FTP Uploader - Deploy Packager ==="
 echo ""
@@ -48,11 +48,10 @@ fi
 
 echo "[4/5] Saját szerver + extra futásidejű csomagok bemásolása..."
 # Felülírjuk a Next.js által a standalone buildbe generált, önmagában
-# semmit nem tudó server.js-t a mi saját szerverünkkel (Next + a
-# node-cron-os ütemező egy folyamatban - lásd server.js).
+# semmit nem tudó server.js-t a mi saját szerverünkkel (lásd server.js).
 cp server.js "$OUTPUT_DIR/server.js"
 mkdir -p "$OUTPUT_DIR/src/server"
-cp src/server/cron.js src/server/uploader.js "$OUTPUT_DIR/src/server/"
+cp src/server/env.js src/server/uploader.js "$OUTPUT_DIR/src/server/"
 
 mkdir -p "$OUTPUT_DIR/node_modules"
 for pkg in "${EXTRA_DEPS[@]}"; do

@@ -4,8 +4,9 @@
 // időpontok) feltölteni egy FTPS szerverre, majd sikeres feltöltés
 // után átmozgatni őket egy "uploaded" almappába, hogy legközelebb
 // már ne dolgozza fel újra ugyanazokat.
-// Ezt a modult hívja meg a cron.js (óránként) ÉS a webes felület
-// "Futtatás most" gombja (run-upload API route) is.
+// Ezt a modult a run-upload API route hívja meg - akár a Windows
+// Task Scheduler órás triggere (lásd scripts/server/_trigger-upload.bat),
+// akár a webes felület "Futtatás most" gombja hívja meg a végpontot.
 // ============================================================
 
 import fs from "fs/promises";
@@ -117,11 +118,13 @@ async function writeLog(baseDir, message) {
   }
 }
 
-// Védelem az egyidejű futás ellen: ha a cron tick épp fut, és
-// eközben valaki megnyomja a "Futtatás most" gombot (vagy két tick
-// lóg egymásba lassú FTP miatt), a második hívás egyszerűen kilép,
-// nem indít párhuzamos feltöltést. E nélkül ugyanaz a fájl kétszer
-// is felkerülhetne az FTP-re, mielőtt bármelyik oldal átmozgatná.
+// Védelem az egyidejű futás ellen: ha a Task Scheduler órás triggere
+// épp fut, és eközben valaki megnyomja a "Futtatás most" gombot (vagy
+// egy lassú FTP miatt két hívás lógna egymásba), a második hívás
+// egyszerűen kilép, nem indít párhuzamos feltöltést. E nélkül ugyanaz
+// a fájl kétszer is felkerülhetne az FTP-re, mielőtt bármelyik oldal
+// átmozgatná. (A Task Scheduler-nek magának is van "ha még fut, ne
+// indíts újat" beállítása - ez itt egy plusz, alkalmazásszintű védelem.)
 let isRunning = false;
 
 export async function processAndUploadAll() {

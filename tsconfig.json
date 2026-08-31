@@ -28,7 +28,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/server/uploader.js",
-    "src/server/cron.js"
+    "src/server/env.js"
   ],
   "exclude": ["node_modules"]
 }

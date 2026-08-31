@@ -1,9 +1,11 @@
 @echo off
 :: ============================================================
 :: WHC FTP Uploader - Frissito script
-:: Leallitja ennek a peldanynak a taskjat, ratolti az uj buildet a
-:: meglevo telepitesre (a .env es a logok erintetlenul maradnak),
-:: majd ujrainditja.
+:: Leallitja a webszerver taskjat, ratolti az uj buildet a meglevo
+:: telepitesre (a .env es a logok erintetlenul maradnak), majd
+:: ujrainditja. A "<TaskNev>-Trigger" (orankenti inditasi) taskot
+:: nem kell kulon leallitani/ujrainditani - az csak idonkent fut le
+:: roviden, es a kovetkezo futasakor magatol a friss fajlokat hasznalja.
 ::
 :: Rendszergazdakent (Administrator), a MAR TELEPITETT app mappajabol
 :: futtasd (ahol korabban az install-service.bat is futott).
