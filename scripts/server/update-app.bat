@@ -27,6 +27,14 @@ set APP_DIR=%~dp0
 set TASK_NAME=%~2
 if "%TASK_NAME%"=="" set TASK_NAME=WHC-FTP-Uploader
 
+:: %~dp0 (es esetleg a megadott SOURCE is) vegzodhet "\"-sal - ha egy
+:: ilyen erteket zaro "\" kozvetlenul a lezaro idezojel elott all,
+:: a Windows escapelt idezojelnek ("\") ertelmezi, es osszezavarja a
+:: kovetkezo parancssori argumentumokat (ez okozta a robocopy hibat).
+:: Ezert itt levagjuk a zaro backslash-t mindkettorol.
+if "%SOURCE:~-1%"=="\" set "SOURCE=%SOURCE:~0,-1%"
+if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
+
 echo ===========================================
 echo   WHC FTP Uploader - Frissites
 echo ===========================================
