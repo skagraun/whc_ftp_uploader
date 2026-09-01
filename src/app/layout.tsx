@@ -6,14 +6,14 @@ import localFont from "next/font/local";
 // (nem a next/font/google-t használjuk, mert a szerveren nincs
 // internet-elérés a build/futás közben, a Google-ös betűtípus
 // letöltése emiatt elhasalna).
-export const geist = localFont({
+const geist = localFont({
   src: "../../public/fonts/Geist-Regular.woff2",
   variable: "--font-geist",
   weight: "400",
   style: "normal",
 });
 
-export const geistMono = localFont({
+const geistMono = localFont({
   src: "../../public/fonts/GeistMono-Regular.woff2",
   variable: "--font-geist-mono",
   weight: "400",
