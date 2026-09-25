@@ -142,6 +142,15 @@ export async function notifyFailure(watchDir, errorLines) {
       host: SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 25),
       secure: false,
+      // A belső relay (10.18.2.17) felajánlja a STARTTLS-t, a nodemailer
+      // pedig automatikusan él vele - de a relay tanúsítványa nem az IP
+      // címre szól (és fordított DNS sincs hozzá), így az ellenőrzés
+      // elbukott ("Hostname/IP does not match certificate's altnames"),
+      // és egyetlen riasztó e-mail sem ment ki. A tanúsítvány
+      // ellenőrzését ezért kikapcsoljuk - pontosan úgy, ahogy a WAS2 is
+      // küld ugyanezen a relay-en keresztül (bevált módszer, a
+      // felhasználó döntése alapján; belső hálózati relay).
+      tls: { rejectUnauthorized: false },
       // Rövid időkorlátok: a nodemailer alapértelmezései percekben
       // mérhetők (pl. 10 perc socket timeout), és egy nem válaszoló
       // relay miatt addig lógna a futás (és vele az isRunning zár).
