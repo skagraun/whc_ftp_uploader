@@ -98,7 +98,7 @@ async function cleanupOldLogs(baseDir) {
 
 // Naponta egy logfájlba ír (YYYY-MM-DD.log), alapértelmezetten a
 // WATCH_DIR/LOG mappába, vagy a LOG_DIR env változóban megadott helyre.
-async function writeLog(baseDir, message) {
+export async function writeLog(baseDir, message) {
   try {
     const LOG_DIR = resolveLogDir(baseDir);
 
@@ -124,7 +124,9 @@ async function writeLog(baseDir, message) {
 // e-mail küldés, csak egy figyelmeztetés a konzolon - a feltöltési
 // logika ettől függetlenül lefut, egy elakadt e-mail küldés sosem
 // akaszthatja meg a feltöltést.
-async function notifyFailure(watchDir, errorLines) {
+// Exportálva van, mert a server.js is ezt hívja, ha maga a szerver
+// folyamat száll el egy el nem kapott hiba miatt.
+export async function notifyFailure(watchDir, errorLines) {
   const SMTP_HOST = process.env.SMTP_HOST;
   const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO;
 
@@ -140,6 +142,12 @@ async function notifyFailure(watchDir, errorLines) {
       host: SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 25),
       secure: false,
+      // Rövid időkorlátok: a nodemailer alapértelmezései percekben
+      // mérhetők (pl. 10 perc socket timeout), és egy nem válaszoló
+      // relay miatt addig lógna a futás (és vele az isRunning zár).
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000,
     });
 
     await transporter.sendMail({
@@ -155,11 +163,22 @@ async function notifyFailure(watchDir, errorLines) {
       ].join("\n"),
     });
     console.log(`[uploader] Failure notification sent to ${ALERT_EMAIL_TO}`);
+    await logIfPossible(`Failure notification e-mail sent to ${ALERT_EMAIL_TO}`);
   } catch (err) {
     // Az e-mail küldés hibája sosem dobjon tovább - a feltöltés
     // eredménye a log fájlban és a konzolon amúgy is megvan.
+    // A napi logba IS beírjuk: korábban ez csak a konzolra ment, így
+    // abból, hogy "nem jött e-mail", utólag nem derült ki, miért.
     console.error("[uploader] Failed to send failure notification:", err.message || err);
+    await logIfPossible(`Failure notification e-mail FAILED: ${err.message || err}`);
   }
+}
+
+// A napi logba ír, de csak ha a WATCH_DIR be van állítva - a
+// notifyFailure olyankor is lefuthat, amikor épp a konfiguráció
+// hiányzik (ilyenkor csak a konzolra megy a bejegyzés).
+async function logIfPossible(msg) {
+  if (process.env.WATCH_DIR) await writeLog(process.env.WATCH_DIR, msg);
 }
 
 // Védelem az egyidejű futás ellen: ha a Task Scheduler órás triggere
